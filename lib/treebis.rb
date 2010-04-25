@@ -201,40 +201,56 @@ module Treebis
 end
 
 if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
+  # fakefs stuff removed in ac877, see notes there for why
   require 'test/unit'
   require 'test/unit/ui/console/testrunner'
   require 'tempfile'
   require 'json'
 
-  # fakefs stuff removed in ac877
-
+  # Experimental extensions for tests. (move them up if needed.)
   module Treebis
     Persistent = './.treebis.json'
     @tmpdir = nil
     class << self
+
+      # Return an entire filsystem tree node as a nested hash, with folders
+      # represtented as hashes, and files and subfolders represented as
+      # elements of that hash with hash keys being a string of the file
+      # basename, and for (non-directory) files, a string value used to hold
+      # the entire contents of the file.  Careful!
+      #
       def ridiculous_tree path
-        dir = Dir.new(path)
-        fail("huh?") unless '...' == (dir.read + dir.read)
-        h = {}
-        while entry = dir.read
+        Hash[ Dir.new(path).each.map do |entry|
           path2 = path + '/' + entry
-          if File.directory?(path2)
-            h[entry] = ridiculous_tree path2
-          else
-            h[entry] = File.read(path2)
-          end
-        end
-        h
+          ['.','..'].include?(entry) ? nil :
+            File.directory?(path2) ?
+              [entry, ridiculous_tree(path2)] : [entry, File.read(path2)]
+        end.compact]
       end
+
+      # Get a path to a temporary directory, suitable to be used in tests.
+      # The contents of this directory are undefined, but it is writable
+      # and as the name implies temporary so a given test should feel free
+      # to erase it and create a new empty one at this same path if desired.
+      # (see callee for details.)
+      #
       def tmpdir
         if @tmpdir.nil?
           @tmpdir = get_tmpdir
-        elsif ! File.exist?(@tmpdir)
+        elsif ! File.exist?(@tmpdir) # check every time!
           @tmpdir = get_tmpdir
         end
         @tmpdir
       end
+
     private
+
+      # Return the same tmpdir used in the previous run, if a "./treebis.json"
+      # file exists in the cwd and it refers to a temp folder that still
+      # exists.  Else make a new temp folder and write its location to this
+      # file.  Using the same tempfolder on successive runs is one way to
+      # allow us to look at the files it generates between runs.
+      #
       def get_tmpdir
         write = tmpdir = nil
         if File.exists? Persistent
@@ -263,6 +279,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       end
     end
   end
+
   class Treebis::TestCase < Test::Unit::TestCase
     def test_cant_reopen_tasks
       tasks = Treebis::TaskSet.new
