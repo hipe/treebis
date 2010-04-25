@@ -10,7 +10,7 @@ Treebis is a minimal, general scripting/task utility that wraps common actions f
   - removes filetrees from filetrees
   - applies diffs to filetrees
   - different ways to represent trees and diffs - heredocs, diffs, filesystem.
-  - under 500 lines of code (?)
+  - under 500 lines of code (?) (200 LOC ATTOTW)
   - 100% test coverage (?)
 
 ### what it is not:
@@ -19,7 +19,7 @@ Treebis is a minimal, general scripting/task utility that wraps common actions f
 ### Frequently Asked Questions
 
   #### Q: why use it?
-  #### A: Because you want a consistent way to wrap these common tasks that doesn't explicitly rely on shelling out to the underlying system
+  #### A: Because you want a consistent way to wrap these common tasks that doesn't explicitly rely on shelling out to the underlying system, or other hodgepodges.
 
   #### Q: why not use it?
   #### A: Because it doesn't do what you want or it does what you do not want.
@@ -32,7 +32,7 @@ Treebis is a minimal, general scripting/task utility that wraps common actions f
 
 ### requirements
   - ruby 1.8.7
-  - GNU patch 2.5.8 (if patching functionality is to be used)
+  - GNU patch 2.5.8 (if diff-patching functionality is to be used)
 
 ### installation
   @todo
