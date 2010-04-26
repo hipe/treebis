@@ -2,6 +2,14 @@ require 'fileutils'
 require 'open3'
 
 module Treebis
+  module Colorize
+    Codes = {:red=>'31', :green=>'32', :yellow=>'33',:bold=>'1',:blink=>'5'}
+    def colorize str, *codenames
+      return str if codenames == [nil] || codenames.empty?
+      "\e["+codenames.map{|x| Codes[x]}.join(';')+"m#{str}\e[0m"
+    end
+    module_function :colorize
+  end
   module Config
     extend self
     @color = true
@@ -9,6 +17,7 @@ module Treebis
     def no_color!; @color = false end
     def color!;    @color = true  end
   end
+  class Fail < RuntimeError; end
   @task_set = nil
   class << self
     def dir_task path
@@ -91,6 +100,7 @@ module Treebis
       resp
     end
     class RunContext
+      include Colorize
       def initialize task, block, from_path, on_path, ui
         @task, @block, @from_path, @on_path = task, block, from_path, on_path
         @noop = false # no setters yet
@@ -101,8 +111,18 @@ module Treebis
       def apply diff_file
         pat, _ = normalize_from diff_file
         tgt, _ = normalize_on(/\A(.+)\.diff\Z/.match(diff_file)[1])
-        out = Sopen2::sopen2assert('patch', '-u', tgt, pat)
-        @ui.puts out
+        cmd = ['patch', '-u', tgt, pat]
+        out, err = Sopen2::sopen2(*cmd)
+        if err.length > 0
+          require 'shellwords'
+          cmd_str = cmd.shelljoin
+          msg = sprintf(
+            "Failed to run patch command: %s\nstdout was: %sstderr was: %s",
+            cmd_str, out, err)
+          fail msg
+        else
+          @ui.puts out
+        end
       end
       def copy path
         full, local = normalize_from path
@@ -161,6 +181,7 @@ module Treebis
         report_action action, short, xtra
       end
     private
+      def fail(*a); raise ::Treebis::Fail.new(*a) end
       def normalize_from path
         fail("expecting leading dot: #{path}") unless short = undot(path)
         full = File.join(@from_path, short)
@@ -171,9 +192,12 @@ module Treebis
         full = File.join(@on_path, short)
         [full, short]
       end
+      ReasonStyles = { :identical => :skip, :"won't overwrite" => :skip,
+                       :changed   => :did,  :wrote => :did, :exists=>:skip }
+      StyleCodes = {   :skip => [:bold, :red], :did  => [:bold, :green] }
       def report_action reason, path, xtra=nil
         reason_s = if Config.color?
-          stylize(reason.to_s, * StyleCodes[ReasonStyles[reason]])
+          colorize(reason.to_s, * StyleCodes[ReasonStyles[reason]])
         else
           reason.to_s
         end
@@ -184,14 +208,6 @@ module Treebis
         # not sure what we want here
         fail('no') if @on_path.nil? || path != @on_path
         true
-      end
-      ReasonStyles = { :identical => :skip, :"won't overwrite" => :skip,
-                       :changed   => :did,  :wrote => :did, :exists=>:skip }
-      StyleCodes = {   :skip => [:bold, :red], :did  => [:bold, :green] }
-      Codes = {:red=>'31', :green=>'32', :yellow=>'33',:bold=>'1',:blink=>'5'}
-      def stylize str, *codenames
-        return str if codenames == [nil]
-        "\e["+codenames.map{|x| Codes[x]}.join(';')+"m#{str}\e[0m"
       end
       def undot path
         $1 if /^(?:\.\/)?(.+)$/ =~ path
