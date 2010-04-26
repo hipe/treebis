@@ -11,10 +11,11 @@ Treebis is a minimal, general scripting/task utility that wraps common actions f
   - applies diffs to filetrees
   - different ways to represent trees and diffs - heredocs, diffs, filesystem.
   - under 500 lines of code (?) (200 LOC ATTOTW)
-  - 100% test coverage (?)
+  - near 100% test coverage (?)
 
 ### what it is not:
   - a vcs or vcs wrapper (version control system)
+  - atomic
 
 ### Frequently Asked Questions
 
@@ -40,6 +41,7 @@ Treebis is a minimal, general scripting/task utility that wraps common actions f
 ### usage
   @todo
 
-### future promises today
-- dry run
-- erb
+### future promises made today:
+  - dry run
+  - erb
+  - two-pass units of work !!??
