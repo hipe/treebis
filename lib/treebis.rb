@@ -104,13 +104,16 @@ module Treebis
       def initialize task, block, from_path, on_path, ui
         @task, @block, @from_path, @on_path = task, block, from_path, on_path
         @noop = false # no setters yet
+        @opts = {}
         @overwrite = false
         @ui = ui
         @unindent = true # no setters yet
       end
+      attr_accessor :opts
       def apply diff_file
         pat, _ = normalize_from diff_file
         tgt, _ = normalize_on(/\A(.+)\.diff\Z/.match(diff_file)[1])
+        return patch_hack(diff_file) if ! File.exist?(pat) && @opts[:patch_hack]
         cmd = ['patch', '-u', tgt, pat]
         out, err = Sopen2::sopen2(*cmd)
         if err.length > 0
@@ -155,6 +158,10 @@ module Treebis
         end
       end
       alias_method :mkdir_p, :mkdir_p_unless_exists # temporary!!
+      def remove path
+        full, _ = normalize_on(path)
+        FileUtils.rm(full, :verbose => true, :noop => @noop)
+      end
       def rm_rf_if_exist
         path = @on_path
         if File.exist?(path) && rm_rf_sanity_check(path)
@@ -162,7 +169,8 @@ module Treebis
         end
       end
       alias_method :rm_rf, :rm_rf_if_exist # for now
-      def run
+      def run opts={}
+        @opts = @opts.merge(opts.reject{|k,v| v.nil?}) # not sure about this
         self.instance_eval(&@block)
       end
       def write path, content
@@ -191,6 +199,11 @@ module Treebis
         short = (thing = undot(path)) ? thing : path
         full = File.join(@on_path, short)
         [full, short]
+      end
+      def patch_hack diff_file
+        /\A(.+)\.diff\Z/ =~ diff_file
+        use = $1 or fail("diff_file parse fail: #{diff_file}")
+        copy use
       end
       ReasonStyles = { :identical => :skip, :"won't overwrite" => :skip,
                        :changed   => :did,  :wrote => :did, :exists=>:skip }
