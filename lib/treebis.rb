@@ -25,6 +25,35 @@ module Treebis
       content.gsub(/^#{Regexp.escape($1)}/,'')
     end
   end
+
+  module Antecedent
+    def init_path_antecedent
+      @antecedent = {}
+    end
+    def path_antecedent domain, string
+      if @antecedent[domain] && head =common_head(@antecedent[domain], string)
+        @antecedent[domain] = [@antecedent[domain], string].max_by(&:length)
+        path_antecedent_truncate head, string
+      else
+        @antecedent[domain] = string
+        string
+      end
+    end
+  private
+    def path_antecedent_truncate common_head, string
+      tail = string[common_head.length..-1]
+      common_head =~ %r<(.{0,3}/?[^/]+/?)\Z>
+      head = $1
+      "...#{head}#{tail}"
+    end
+    def common_head str1, str2
+      for i in 0..( [str1.length, str2.length].min - 1 )
+        break unless str1[i] == str2[i]
+      end
+      ret = str1[0..i-1]
+      ret
+    end
+  end
   # like Open3 but stay in the ruby runtime
   module Capture3
     # @return [result, out_string, err_string]
@@ -108,20 +137,23 @@ module Treebis
     # whatever the response it to screen, but sometimes we want to format its
     # response a little more when possible.
     #
-    include Capture3, Colorize
+    include Antecedent, Capture3, Colorize
     def initialize &block
       @prefix = ''
       @pretty = false
-      @ui = $stderr
+      init_path_antecedent
       yield(self) if block_given?
     end
-    attr_accessor :ui
+    attr_writer :ui
     def cp *args
+      opts = args.last.kind_of?(Hash) ? args.last : {}
       ret, out, err = nil, "", nil
+      keep = {:pretty_name_target => opts.delete(:pretty_name_target) }
       if ! @pretty
         ret = super(*args)
       else
         ret, out, err = capture3{ super(*args) }
+        opts.merge!(keep)
         pretty_puts_cp ret, out, err, *args
       end
       ret
@@ -161,10 +193,8 @@ module Treebis
     def pretty_puts_cp ret, out, err, *args
       fail("unexpected out: #{out.inspect} or ret: #{ret.inspect}") unless
         ret.nil? && out == ''
-      p1, p2 = args[0..1].map{|x| Pathname.new(x)}
-      shorter = p2.relative_path_from(p1).to_s
-      p2 = shorter.length < p2.to_s.length ? shorter : p2.to_s
-      p1 = p1.to_s
+      opts = args.last.kind_of?(Hash) ? args.last : {}
+      p1, p2 = pretty_puts_cp_paths(args[0], args[1], opts)
       # Regexp.escape(args[0..1].map{|x|Shellwords.escape(x)}.join(' '))
       matched =
       /\Acp #{Regexp.escape(args[0])} #{Regexp.escape(args[1])}(.*)\Z/ =~ err
@@ -174,21 +204,48 @@ module Treebis
         err = "cp #{p1} #{p2}#{$1}"
       end
       err.sub!(/\A(?:no response\? )?cp\b/){colorize('cp',:bright,:green)}
-      @ui.puts("%s%s" % [@prefix, err])
+      ui.puts("%s%s" % [@prefix, err])
+    end
+    # use a variety of advanced cutting edge technology to determine
+    # a shortest way to express unambiguesque-ly paths
+    def pretty_puts_cp_paths path1, path2, opts
+      path2 = if opts[:pretty_name_target]
+        opts[:pretty_name_target]
+      else
+        s1 = Pathname.new(path2).relative_path_from(Pathname.new(path1)).to_s
+        s2 = path_antecedent(:cp_tgt, path2)
+        s3 = path2
+        shortest, idx = [s1, s2, s3].each_with_index.min_by{|v, i|v.length}
+        shortest
+      end
+      path1 = path_antecedent(:cp_src, path1)
+      [path1, path2]
     end
     def pretty_puts_mkdir_p ret, out, err, *args
       fail("expecing mkdir_p never to write to stdout") unless out == ""
       return unless args.last.kind_of?(Hash) && args.last[:verbose]
       if @pretty
-        err.sub!(/\Amkdir -p/){|_| colorize('mkdir -p', :bright, :green)}
-        @ui.puts sprintf("#{@prefix}#{err}")
+        # wierd that sometimes err is empty sometimes not
+        fake_err = "mkdir -p #{ret}"
+        fake_err.sub!(/\A(mkdir -p)/){ colorize($1, :bright, :green)}
+        ui.puts sprintf("#{@prefix}#{fake_err}")
       else
-        @ui.puts err
+        ui.puts(err) unless err == "" # emulate it
       end
     end
     def pretty_puts_rm ret, out, err, *a
       err = err.sub(/\Arm\b/){colorize('rm', :bright, :green)}
-      @ui.puts sprintf("#{@prefix}#{err}")
+      ui.puts sprintf("#{@prefix}#{err}")
+    end
+    def ui
+      $stderr # one day we will almost certainly make a setter for this
+      # but one thing we *don't* want to do is ever set @ui equal to $stderr
+      # because then capture3 won't work in tests.
+    end
+  end
+  module PathString
+    def no_leading_dot_slash str
+      str.sub(/\A\.\//,'')
     end
   end
   module Sopen2
@@ -255,7 +312,7 @@ module Treebis
       resp
     end
     class RunContext
-      include Colorize
+      include Colorize, PathString
       def initialize task, block, from_path, on_path, ui
         @task, @block, @from_path, @on_path = task, block, from_path, on_path
         @noop = false # no setters yet
@@ -295,7 +352,9 @@ module Treebis
         if File.exist?(tgt) && File.read(full) == File.read(tgt)
           report_action :identical, path
         else
-          file_utils.cp(full, tgt, :verbose=>true, :noop=>@noop)
+          file_utils.cp(full, tgt, :verbose=>true, :noop=>@noop,
+            :pretty_name_target => no_leading_dot_slash(path)
+          )
         end
       end
       def move from, to
@@ -509,6 +568,58 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
 
   module ::Treebis::Test
 
+    module TestAntecedents
+      def setup_antecedents
+        src = empty_tmpdir('sourceis')
+        task.new do
+          mkdir_p "foo/bar/baz"
+          write "foo/bar/baz/alpha.txt", 'x'
+          write "foo/bar/beta.txt", 'x'
+          write "foo/gamma.txt", 'x'
+        end.on(src).run
+        src
+      end
+      def test_antecedents
+        src = setup_antecedents
+        fu = nil
+        tt = task.new do
+          from src
+          fu = file_utils
+          mkdir_p "foo/bar/baz"
+          copy "foo/bar/baz/alpha.txt"
+          copy "foo/bar/beta.txt"
+          copy "foo/gamma.txt"
+        end
+        tgt = empty_tmpdir('targetis')
+        aa, bb, cc = capture3{ tt.on(tgt).run }
+        assert_equal [nil, ''], [aa,bb]
+        penu, last = cc.split("\n")[-2..-1]
+        assert penu.index("...bar/beta.txt foo/bar/beta.txt")
+        assert last.index("...eis/foo/gamma.txt foo/gamma.txt")
+      end
+
+      def test_antecedents_raw
+        fu = file_utils
+        src = setup_antecedents
+        tgt = empty_tmpdir('targetis')
+        these = %w(    foo/bar/baz/alpha.txt
+                       foo/bar/beta.txt
+                       foo/gamma.txt          )
+        fu.pretty!
+        _, out, err = capture3 do
+          fu.mkdir_p File.join(tgt,'foo/bar/baz')
+          these.each do |foo|
+            from, to = File.join(src,foo), File.join(tgt,foo)
+            fu.cp from, to
+          end
+        end
+        assert_equal '', out
+        penu, last = err.split("\n")[-2..-1]
+        assert penu.index(' ...bar/beta.txt ...bar/beta.txt')
+        assert last.index('...eis/foo/gamma.txt ...tis/foo/gamma.txt')
+      end
+    end
+
     module TestColorAndRmAndMoveAndPatch
       def test_rm_rf
         t = task.new do
@@ -674,7 +785,8 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
             pretty_puts_apply("i am another string")
           end.on(empty_tmpdir("blah")).run
         end
-        assert_equal [nil, "", "      i am another string\n"], [res, out, err]
+        assert_equal [nil, ""], [res, out]
+        assert err.index("i am another string")
       end
     end
 
@@ -807,14 +919,16 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
 
     class TestCase < ::Test::Unit::TestCase
       include Treebis::FilesystemAsHash, Treebis::Capture3
-
-      include TestSopen, TestColorAndRmAndMoveAndPatch
-      include TestTempdirAndTasksAndCopy
-      include TestFileUtilsProxy, TestPatch
+      include TestAntecedents
+      include TestColorAndRmAndMoveAndPatch
+      include TestFileUtilsProxy
+      include TestPatch
       include TestPersistentDotfile
       include TestRemove
+      include TestTempdirAndTasksAndCopy
+      include TestSopen
 
-      futils_prefix = sprintf( "%s%s ", Treebis::Config.default_prefix,
+      futils_prefix = sprintf( "%s%s --> ", Treebis::Config.default_prefix,
         Treebis::Colorize.colorize('for test:', :bright, :blue) )
 
       file_utils = Treebis::FileUtilsProxy.new do |fu|
