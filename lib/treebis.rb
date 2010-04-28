@@ -117,19 +117,62 @@ module Treebis
     include FileUtils
     public :cp, :mkdir_p, :mv, :rm, :remove_entry_secure
   end
-  module FilesystemAsHash
+  module DirAsHash
     #
     # Return an entire filsystem node as a hash whose files are represented
     # as strings holding the contents of the file and whose folders
     # are other such hashes.  The hash element keys are the entry strings.
     # Careful! the only real use for this so far is in testing.
     #
-    def dir_as_hash path
-      Hash[ Dir.new(path).each.map.reject{|x| 0==x.index('.')}.map { |e|
+    def dir_as_hash path, opts={}
+      funny = not_funny opts[:skip]
+      Hash[ Dir.new(path).each.map.reject do
+        |x| 0==x.index('.') || false == funny[x]
+      end.map { |e|
         p = path + '/' + e
         ['.','..'].include?(e) ? nil :
-        [e, File.directory?(p) ?  dir_as_hash(p) : File.read(p) ]
+        [e, File.directory?(p) ?
+          dir_as_hash(p, :skip=>funny[e]) : File.read(p)
+        ]
       } ]
+    end
+
+    def hash_to_dir hash, path, file_utils
+      fail("must not exist: #{path}") if File.exist? path
+      file_utils.mkdir_p(path,:verbose=>true)
+      hash.each do |k,v|
+        path2 = File.join(path, k)
+        case v
+        when String
+          File.open(path2, 'w'){|fh| fh.write(v)}
+        when Hash
+          hash_to_dir(v, path2, file_utils)
+        else
+          fail("bad type for dir hash: #{v.inspect}")
+        end
+      end
+      true
+    end
+
+  private
+    #
+    # http://www.youtube.com/watch?v=Ib0Tll3sGB0
+    #
+    def not_funny mixed
+      return {} if mixed.nil? || mixed.empty?
+      hash = {}
+      mixed.each do |x|
+        %r{\A([^/]+)(?:/(.+)|)\Z} =~ x or fail("path: #{x.inspect}")
+        head, tail = $1, $2
+        if tail.nil?
+          fail("don't do that") if hash.key?(head)
+          hash[head] = false
+        else
+          hash[head] ||= []
+          hash[head].push tail
+        end
+      end
+      hash
     end
   end
   class FileUtilsProxy < FileUtilsAsClass
@@ -701,6 +744,49 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       end
     end
 
+    module TestDirAsHash
+      def test_baby_jug_fail
+        hh = {'foo'=>nil}
+        e = assert_raise(RuntimeError) do
+          hash_to_dir(hh, empty_tmpdir('babyjug')+'/bar', file_utils)
+        end
+        assert_match(/bad type for dir hash/, e.message)
+      end
+      def test_dir_as_hash
+        h = {
+          'not'=>'funny',
+          'baby-jug'=>{
+            'what-does'=>'the baby have',
+            'blood'=>'where?'},
+          'not-funny'=>{
+            'youre' => {
+              'right' => 'its not funny',
+              'not'=>{
+                'funny'=>'ha ha',
+                'not funny'=>'BLOO-DUH'
+              }
+            }
+          }
+        }
+        td = empty_tmpdir('blah')+'/not-there'
+        hash_to_dir(h, td, file_utils)
+        skips = [ 'baby-jug/blood',
+                  'not-funny/youre/not/funny']
+        wow = dir_as_hash(td,:skip=>skips)
+        no_way = {
+          "baby-jug"=>{"what-does"=>"the baby have"},
+          "not"=>"funny",
+          "not-funny"=>{
+            "youre"=>{
+              "right"=>"its not funny",
+              "not"=>{"not funny"=>"BLOO-DUH"}
+            }
+          }
+        }
+        assert_equal no_way, wow
+      end
+    end
+
     module TestFileUtilsProxy
       def test_cp_not_pretty
         src_dir = empty_tmpdir('foo')
@@ -918,9 +1004,10 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
 
 
     class TestCase < ::Test::Unit::TestCase
-      include Treebis::FilesystemAsHash, Treebis::Capture3
+      include Treebis::DirAsHash, Treebis::Capture3
       include TestAntecedents
       include TestColorAndRmAndMoveAndPatch
+      include TestDirAsHash
       include TestFileUtilsProxy
       include TestPatch
       include TestPersistentDotfile
