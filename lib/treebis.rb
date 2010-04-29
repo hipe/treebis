@@ -530,7 +530,7 @@ module Treebis
 end
 
 # Experimental extension for tests running tests with a persistent tempdir
-# now you can set and get general properties
+# now you can set and get general properties, and delegate this behavior.
 #
 module Treebis
   module PersistentDotfile
@@ -546,6 +546,7 @@ module Treebis
         mod.send(:include, InstanceMethods)
       end
     end
+    DelegatedMethods = %w(tmpdir empty_tmpdir persistent_set persistent_get)
     module ClassMethods
       attr_accessor :dotfile_path, :file_utils
 
@@ -583,6 +584,22 @@ module Treebis
           @tmpdir = get_tmpdir
         end
         @tmpdir
+      end
+
+      def persistent_delegate_to(mod)
+        @persistent_delegate ||= begin
+          mm = Module.new
+          str = "#{self}::PersistentDotfileDelegate"
+          const_set('PersistentDotfileDelegate', mm)
+          class << mm; self end.send(:define_method,:inspect){str}
+          buck = self
+          DelegatedMethods.each do |meth|
+            mm.send(:define_method, meth){|*a| buck.send(meth,*a) }
+          end
+          mm
+        end
+        mod.extend(@persistent_delegate)
+        mod.send(:include, @persistent_delegate)
       end
 
       def persistent_get path
@@ -638,8 +655,7 @@ module Treebis
     end
 
     module InstanceMethods
-      these = %w(tmpdir empty_tmpdir persistent_set persistent_get)
-      these.each do |this|
+      DelegatedMethods.each do |this|
         define_method(this){ |*a| self.class.send(this, *a) }
       end
     end
