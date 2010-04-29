@@ -530,6 +530,7 @@ module Treebis
 end
 
 # Experimental extension for tests running tests with a persistent tempdir
+# now you can set and get general properties
 #
 module Treebis
   module PersistentDotfile
@@ -551,6 +552,7 @@ module Treebis
       def persistent_dotfile_init opts
         @dotfile_path ||= opts[:dotfile_path]
         @file_utils   ||= opts[:file_utils]
+        @persistent_struct ||= nil
         @tmpdir       ||= nil
       end
 
@@ -583,6 +585,34 @@ module Treebis
         @tmpdir
       end
 
+      def persistent_get path
+        struct = persistent_struct or return nil
+        struct[path]
+      end
+
+      # this might cause bugs if different classes use the same
+      # dotfile name
+      def persistent_struct
+        if @persistent_struct
+          @persistent_struct
+        elsif @persistent_struct == false
+          nil
+        elsif File.exists? dotfile_path
+          @persistent_struct = JSON.parse(File.read(dotfile_path))
+        else
+          @persistent_struct = false
+        end
+      end
+
+      def persistent_set path, value
+        struct = persistent_struct || (@persistent_struct = {})
+        struct[path] = value
+        File.open(dotfile_path, 'w+') do |fh|
+          fh.write JSON.pretty_generate(struct)
+        end
+        nil
+      end
+
     private
 
       # Return the same tmpdir used in the previous run, if a "./treebis.json"
@@ -592,34 +622,23 @@ module Treebis
       # allow us to look at the files it generates between runs.
       #
       def get_tmpdir
-        write = tmpdir = nil
-        if File.exists? dotfile_path
-          struct = JSON.parse(File.read(dotfile_path))
-          if File.exist?(struct['tmpdir'])
-            tmpdir = struct['tmpdir']
-          else
-            write = true
+        tmpdir = nil
+        if tmpdir_path = persistent_get('tmpdir')
+          if File.exist?(tmpdir_path)
+            tmpdir = tmpdir_path
           end
-        else
-          struct = {}
-          write = true
         end
         unless tmpdir
           tmpdir = Dir::tmpdir + '/treebis'
           file_utils.mkdir_p(tmpdir,:verbose=>true)
-        end
-        if write
-          struct['tmpdir'] = tmpdir
-          File.open(dotfile_path,'w+') do |fh|
-            fh.write JSON.pretty_generate(struct)
-          end
+          persistent_set 'tmpdir', tmpdir
         end
         tmpdir
       end
     end
 
     module InstanceMethods
-      these = %w(tmpdir empty_tmpdir)
+      these = %w(tmpdir empty_tmpdir persistent_set persistent_get)
       these.each do |this|
         define_method(this){ |*a| self.class.send(this, *a) }
       end
