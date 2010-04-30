@@ -223,6 +223,29 @@ module Treebis
     def pretty!
       @pretty = true
     end
+    def remove_entry_secure path, force=false, opts={}
+      opts = {:verbose=>true}.merge(opts)
+      # parent call doesn't write to stdout or stderr, returns nil
+      did = nil
+      if File.exist?(path)
+        super(path, force)
+        did = true
+        err = "rm -rf #{path}"
+        colors = [:bright,:green]
+      else
+        did = false
+        err = "rm -rf (didn't exist:) #{path}"
+        colors = [:bright, :red]
+      end
+      if opts[:verbose]
+        if @pretty
+          err.sub!(/\Arm -rf/){colorize('rm -rf',*colors)}
+          err = "#{prefix}#{err}"
+        end
+        ui.puts err
+      end
+      did
+    end
     def rm *a
       if @pretty
         b = capture3{ super(*a) }
