@@ -358,6 +358,11 @@ module Treebis
       str.sub(/\A\.\//,'')
     end
   end
+  module Shellopts
+    def shellopts hash
+      hash.map.flatten.reject{|x| x.empty? || x.nil? }
+    end
+  end
   module Sopen2
     @ui = nil
     module_function
@@ -417,7 +422,7 @@ module Treebis
       file_utils.ui_pop
     end
     class RunContext
-      include Colorize, PathString
+      include Colorize, PathString, Shellopts
       def initialize task, block, from_path, on_path, file_utils
         @task, @block, @from_path, @on_path = task, block, from_path, on_path
         @file_utils = file_utils
@@ -427,13 +432,24 @@ module Treebis
         @unindent = true # no setters yet
       end
       attr_accessor :file_utils, :opts
-      def apply diff_file
-        pat, _ = normalize_from diff_file
-        tgt, _ = normalize_on(/\A(.+)\.diff\Z/.match(diff_file)[1])
-        if ! File.exist?(pat) && @opts[:patch_hack]
+      def apply diff_file, opts={}
+        shell_opts = shellopts(opts)
+        patchfile, _ = normalize_from diff_file
+        /\A(?:()|(.+)\.)diff\Z/ =~ diff_file or fail("patch needs .diff ext.")
+        basename = $1 || $2
+        if ! File.exist?(patchfile) && @opts[:patch_hack]
           return patch_hack(diff_file)
         end
-        cmd = ['patch', '-u', tgt, pat]
+        target, _ = normalize_on(basename)
+        cmd = nil
+        if target == './'
+          shell_opts.unshift('-p0')
+          cmd = ['patch '+Shellwords.shelljoin(shell_opts)+' < '+
+            Shellwords.shellescape(patchfile)]
+        else
+          target_arr = (target == './') ? [] : [target]
+          cmd = ['patch', '-u', *shell_opts] + target_arr + [patchfile]
+        end
         out, err = Sopen2::sopen2(*cmd)
         if err.length > 0
           cmd_str = cmd.shelljoin
@@ -534,10 +550,13 @@ module Treebis
         copy use
       end
       def pretty_puts_apply out
-        if /^\Apatching file (.+)\Z/ =~ out
-          report_action :patched, $1
-        else
-          ui.puts("#{prefix}#{out}")
+        these = out.split("\n")
+        these.each do |this|
+          if /^\Apatching file (.+)\Z/ =~ this
+            report_action :patched, $1
+          else
+            ui.puts("#{prefix}#{this}")
+          end
         end
       end
       def report_action reason, msg=nil, xtra=nil
