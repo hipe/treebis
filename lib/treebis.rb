@@ -311,7 +311,14 @@ module Treebis
       end
     end
     def pretty_puts_rm out, err, ret, *a
-      err = err.sub(/\Arm\b/){colorize('rm', :bright, :green)}
+      if out=='' && err==''
+        err = "rm #{ret.join(' ')}"
+        color = :green
+        # @todo what's happening here?  (change color to red)
+      else
+        color = :green
+      end
+      err = err.sub(/\Arm\b/){colorize('rm', :bright, color)}
       ui.puts sprintf("#{prefix}#{err}")
     end
   end
