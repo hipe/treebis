@@ -432,6 +432,11 @@ module Treebis
         @unindent = true # no setters yet
       end
       attr_accessor :file_utils, :opts
+      #
+      # if this is operating on a whole folder (if the patch filename is
+      # called 'diff' as opposed to 'somefile.diff'), depending on how you
+      # build the patch you may want the --posix flag
+      #
       def apply diff_file, opts={}
         shell_opts = shellopts(opts)
         patchfile, _ = normalize_from diff_file
@@ -458,7 +463,7 @@ module Treebis
             cmd_str, out, err)
           fail msg
         else
-          pretty_puts_apply out
+          pretty_puts_apply out, cmd
         end
       end
       def copy path
@@ -534,6 +539,26 @@ module Treebis
       end
     private
       def fail(*a); raise ::Treebis::Fail.new(*a) end
+      ReasonStyles = { :identical => :skip, :"won't overwrite" => :skip,
+                       :changed   => :did,  :wrote => :did, :exists=>:skip,
+                       :patched   => :changed2, :notice => :changed2,
+                       :exec   => :changed2}
+      StyleCodes = {   :skip => [:bold, :red], :did  => [:bold, :green] ,
+                       :changed2 => [:bold, :yellow] }
+      # return nil if not found.  @todo make customizable !?  ick
+      def get_style foo
+        StyleCodes[ReasonStyles[foo]]
+      end
+      # gives whatever you want the notice style. colorize head and separate
+      # it with a space and print tail without color
+      def notice head, tail
+        if Config.color?            #  && /\A(\s*\S+)(.*)\Z/ =~ msg
+          msg = colorize(head, * get_style(:notice))+' '+tail
+        else
+          msg = "#{head} #{tail}"
+        end
+        ui.puts "#{prefix}#{msg}"
+      end
       def normalize_from path
         fail("expecting leading dot: #{path}") unless short = undot(path)
         full = File.join(@from_path, short)
@@ -549,7 +574,8 @@ module Treebis
         use = $1 or fail("diff_file parse fail: #{diff_file}")
         copy use
       end
-      def pretty_puts_apply out
+      def pretty_puts_apply out, cmd
+        report_action :exec, cmd.join(' ')
         these = out.split("\n")
         these.each do |this|
           if /^\Apatching file (.+)\Z/ =~ this
@@ -559,6 +585,7 @@ module Treebis
           end
         end
       end
+      # see also notice()
       def report_action reason, msg=nil, xtra=nil
         reason_s = stylize(reason.to_s, reason)
         puts = ["#{prefix}#{reason_s}", msg, xtra].compact.join(' ')
@@ -569,15 +596,9 @@ module Treebis
         fail('no') if @on_path.nil? || path != @on_path
         true
       end
-      ReasonStyles = { :identical => :skip, :"won't overwrite" => :skip,
-                       :changed   => :did,  :wrote => :did, :exists=>:skip,
-                       :patched   => :changed2, :notice => :changed2 }
-      StyleCodes = {   :skip => [:bold, :red], :did  => [:bold, :green] ,
-                       :changed2 => [:bold, :yellow] }
       def stylize str, reason
         return str unless Config.color?
-        codes = StyleCodes[ReasonStyles[reason]]
-        colorize(reason.to_s, * StyleCodes[ReasonStyles[reason]])
+        colorize(reason.to_s, * get_style(reason))
       end
       def undot path
         $1 if /^(?:\.\/)?(.+)$/ =~ path
