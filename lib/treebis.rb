@@ -1037,6 +1037,25 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
         }
         assert_equal no_way, wow
       end
+      def test_dir_as_hash_with_globs
+        h = {
+          'file1.txt' => 'foo',
+          'file2.rb' => 'baz',
+          'dir1' => {
+            'file3.txt' => 'bar',
+            'file4.rb' => 'bling'
+          }
+        }
+        td = empty_tmpdir('blah')+'/not-there'
+        hash_to_dir(h, td, file_utils)
+        skips = [ 'dir1/*.rb' ]
+        wow = dir_as_hash(td, :skip=>skips)
+        no_way = {
+          "file1.txt"=>"foo", "file2.rb"=>"baz",
+          "dir1"=>{"file3.txt"=>"bar"},
+        }
+        assert_equal no_way, wow
+      end
     end
 
     module TestFileUtilsProxy
