@@ -431,10 +431,9 @@ module Treebis
       fail("expecing mkdir_p never to write to stdout") unless out == ""
       return unless args.last.kind_of?(Hash) && args.last[:verbose]
       if @pretty
-        # wierd that sometimes err is empty sometimes not
-        fake_err = "mkdir -p #{ret}"
-        fake_err.sub!(/\A(mkdir -p)/){ colorize($1, :bright, :green)}
-        ui.puts sprintf("#{prefix}#{fake_err}")
+        err2 = err.empty? ? "mkdir -p #{ret}" : err # sometimes this. weird
+        err3 = err2.sub(/\A(mkdir -p)/){ colorize($1, :bright, :green)}
+        ui.puts sprintf("#{prefix}#{err3}")
       else
         ui.puts(err) unless err == "" # emulate it
       end
@@ -1085,6 +1084,15 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
           "emptoz" => {}
         }
         assert_equal(exp, act)
+      end
+      def test_patch_fileutils
+        tmpdir = empty_tmpdir('oilspill')
+        out, err = capture3 do
+          file_utils.remove_entry_secure tmpdir+'/not-there'
+          file_utils.mkdir_p tmpdir, :verbose => true
+        end
+        assert_match(/didn't exist.+not-there/, err)
+        assert_match(/mkdir_p.+exists.+oilspill/, err)
       end
       def test_pretty_puts_cp_unexpected_output
         e = assert_raises(RuntimeError) do
