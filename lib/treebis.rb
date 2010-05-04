@@ -184,7 +184,7 @@ module Treebis
               fail("path: #{mixed.inspect}")
             head, tail = $1, $2
             if head.index('*')
-              GlobNodeMatcher.new(head, tail)
+              GlobNodeMatcher.get(head, tail)
             else
               StringMatcher.new(head, tail)
             end
@@ -263,8 +263,18 @@ module Treebis
       class GlobNodeMatcher < MatcherWithTail
         # **/ --> (.*?\/)+ ; * --> .*? ; ? --> . ;
         # "**/*.rb" --> /^(.*?\/)+.*?\.rb$/ -thx heftig
+        class << self
+          include MatcherFactory
+          def get globtoken, tail
+            if /(?:\*\*|\/)/ =~ globtoken
+              GlobNodeMatcherDeep.new(globtoken, tail)
+            else
+              new globtoken, tail
+            end
+          end
+        end
         def initialize globtoken, tail
-          /(?:\*\*|\/)/ =~ globtoken and fail("not yet")
+          /(?:\*\*|\/)/ =~ globtoken and fail("use factory")
           /\*/ =~ globtoken or fail("no")
           regexp_str = globtoken.split('*').map do |x|
             Regexp.escape(x)
@@ -274,6 +284,20 @@ module Treebis
         end
         def head_include? str
           @re =~ str
+        end
+      end
+      class GlobNodeMatcherDeep < GlobNodeMatcher
+        def initialize globtoken, tail
+          /\*\*/ =~ globtoken or fail("not deep: #{globtoken.inspect}")
+          tail or fail("for now deep globs must look like \"**/*.bar\"")
+          self.tail = tail
+        end
+        undef_method :head_include? # just to be safe, we don't want this
+        def include? str
+          @tail.include? str
+        end
+        def submatcher str
+          self # you just keep travelling down the tree when you're '**'
         end
       end
       class StringMatcher < MatcherWithTail
@@ -294,19 +318,28 @@ module Treebis
     include FileUtils
     public :cp, :mkdir_p, :mv, :rm, :remove_entry_secure
   end
+  module Stylize; end
   class FileUtilsProxy < FileUtilsAsClass
     # We like the idea of doing FileUtils.foo(:verbose=>true) and outputting
     # whatever the response it to screen, but sometimes we want to format its
     # response a little more when possible.
     #
-    include Antecedent, Capture3, Colorize
+    include Antecedent, Capture3, Colorize, Stylize
     def initialize &block
+      @color = nil
       @prefix = ''
       @pretty = false
       init_path_antecedent
       @ui = Config.default_out_stream
       @ui_stack = nil
       yield(self) if block_given?
+    end
+    def color? &block
+      if block_given?
+        @color = block
+      else
+        @color.call
+      end
     end
     def cp *args
       opts = args.last.kind_of?(Hash) ? args.last : {}
@@ -481,6 +514,39 @@ module Treebis
       @stderr ||= ((@ui && @ui.respond_to?(:err)) ? @ui.err : $stderr)
     end
   end
+  module Stylize
+    # includer must implement color? and prefix() and ui()
+
+    include Colorize
+
+    ReasonStyles = { :identical => :skip, :"won't overwrite" => :skip,
+                     :changed   => :did,  :wrote => :did, :exists=>:skip,
+                     :patched   => :changed2, :notice => :changed2,
+                     :exec   => :changed2}
+    StyleCodes = {   :skip => [:bold, :red], :did  => [:bold, :green] ,
+                     :changed2 => [:bold, :yellow] }
+
+    #
+    # @return nil if not found. feel free to override.
+    #
+    def get_style foo
+      StyleCodes[ReasonStyles[foo]]
+    end
+
+    #
+    # write to ui.puts() whatever you want with the notice style. if color?,
+    # colorize head and separate it with a space and print tail without color.
+    # if not color?, the above but in "b&w"
+    #
+    def notice head, tail
+      if color?            #  && /\A(\s*\S+)(.*)\Z/ =~ msg
+        msg = colorize(head, * get_style(:notice))+' '+tail
+      else
+        msg = "#{head} #{tail}"
+      end
+      ui.puts "#{prefix}#{msg}"
+    end
+  end
   class TaskSet
     def initialize
       @tasks = {}
@@ -519,7 +585,7 @@ module Treebis
       file_utils.ui_pop
     end
     class RunContext
-      include Colorize, PathString, Shellopts
+      include Colorize, PathString, Shellopts, Stylize
       def initialize task, block, from_path, on_path, file_utils
         @task, @block, @from_path, @on_path = task, block, from_path, on_path
         @file_utils = file_utils
@@ -635,27 +701,8 @@ module Treebis
         report_action action, short, xtra
       end
     private
+      def color?; Config.color? end
       def fail(*a); raise ::Treebis::Fail.new(*a) end
-      ReasonStyles = { :identical => :skip, :"won't overwrite" => :skip,
-                       :changed   => :did,  :wrote => :did, :exists=>:skip,
-                       :patched   => :changed2, :notice => :changed2,
-                       :exec   => :changed2}
-      StyleCodes = {   :skip => [:bold, :red], :did  => [:bold, :green] ,
-                       :changed2 => [:bold, :yellow] }
-      # return nil if not found.  @todo make customizable !?  ick
-      def get_style foo
-        StyleCodes[ReasonStyles[foo]]
-      end
-      # gives whatever you want the notice style. colorize head and separate
-      # it with a space and print tail without color
-      def notice head, tail
-        if Config.color?            #  && /\A(\s*\S+)(.*)\Z/ =~ msg
-          msg = colorize(head, * get_style(:notice))+' '+tail
-        else
-          msg = "#{head} #{tail}"
-        end
-        ui.puts "#{prefix}#{msg}"
-      end
       def normalize_from path
         fail("expecting leading dot: #{path}") unless short = undot(path)
         full = File.join(@from_path, short)
