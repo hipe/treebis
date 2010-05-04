@@ -630,7 +630,27 @@ module Treebis
         end
       end
       def copy path
+        if path.index('*')
+          copy_glob(path)
+        else
+          full, local = normalize_from path
+          copy_go full, local, path
+        end
+      end
+      def copy_glob path
+        path.index('*') or fail("not glob: #{path.inspect}")
         full, local = normalize_from path
+        these = Dir[full]
+        if these.empty?
+          notice('copy', "no files matched #{path.inspect}")
+        else
+          opts = these.map do |this|
+            [this, * copy_unglob(this, local, path)]
+          end
+          opts.each {|a| copy_go *a }
+        end
+      end
+      def copy_go full, local, path
         tgt = File.join(@on_path, local)
         skip = false
         if File.exist?(tgt) && File.read(full) == File.read(tgt)
@@ -641,6 +661,17 @@ module Treebis
           )
         end
       end
+      private :copy_go
+      # annoying, ridiculous, fragile: make pretty reporting of glob ops
+      def copy_unglob full, locl, path
+        re = self.class.glob_to_regex(locl)
+        (b = full =~ re && $2       ) or fail("no: #{full.inspect}")
+        (d,f = locl =~re && [$1, $3]) or fail("no: #{locl.inspect}")
+        (h,j = path =~re && [$1, $3]) or fail("no: #{path.inspect}")
+        ret = ["#{d}#{b}#{f}", "#{h}#{b}#{j}"]
+        ret
+      end
+      private :copy_unglob
       def move from, to
         fr_full, fr_local = normalize_on from
         to_full, fr_lcoal = normalize_on   to
@@ -746,6 +777,18 @@ module Treebis
       end
       def undot path
         $1 if /^(?:\.\/)?(.+)$/ =~ path
+      end
+      class << self
+        # this is not for general use
+        def glob_to_regex glob
+          fail("this is really strict: (only) 1 '*': #{glob.inspect}") unless
+            glob.scan(/\*/).size == 1
+          a, b = glob.split('*')
+          re = Regexp.new(
+            '\\A(.*'+Regexp.escape(a)+')(.*?)('+Regexp.escape(b)+')\\Z'
+          )
+          re
+        end
       end
     end
   end
