@@ -139,16 +139,16 @@ module Treebis
     # Careful! the only real use for this so far is in testing.
     #
     def dir_as_hash path, opts={}
-      funny = not_funny opts[:skip]
-      Hash[ Dir.new(path).each.map.reject do
-        |x| 0==x.index('.') || false == funny[x]
-      end.map { |e|
-        p = path + '/' + e
-        ['.','..'].include?(e) ? nil :
-        [e, File.directory?(p) ?
-          dir_as_hash(p, :skip=>funny[e]) : File.read(p)
-        ]
-      } ]
+      blacklist = Blacklist.get(opts[:skip])
+      list1 = Dir.new(path).each.map.reject{ |x|
+        0==x.index('.') || blacklist.include?(x)
+      }
+      list2 = list1.map{ |entry|
+        p = path + '/' + entry
+        [ entry, File.directory?(p) ?
+          dir_as_hash(p, :skip=>blacklist.submatcher(entry)) : File.read(p) ]
+      }
+      Hash[ list2 ]
     end
 
     def hash_to_dir hash, path, file_utils
@@ -169,24 +169,123 @@ module Treebis
     end
 
   private
-    #
-    # http://www.youtube.com/watch?v=Ib0Tll3sGB0
-    #
-    def not_funny mixed
-      return {} if mixed.nil? || mixed.empty?
-      hash = {}
-      mixed.each do |x|
-        %r{\A([^/]+)(?:/(.+)|)\Z} =~ x or fail("path: #{x.inspect}")
-        head, tail = $1, $2
-        if tail.nil?
-          fail("don't do that") if hash.key?(head)
-          hash[head] = false
-        else
-          hash[head] ||= []
-          hash[head].push tail
+    class Blacklist
+      #
+      # ruby implementation of fileglob-like patterns for data structures
+      # this would be faster and uglier with string matchers as hash keys
+      # this might move to Tardo lib
+      #
+      module MatcherFactory
+        def create_matcher mixed
+          case mixed
+          when Matcher; mixed # keep this first for primitive subclasses
+          when NilClass; EmptyMatcher
+          when String
+            %r{\A([^/]+)(?:/(.+)|)\Z} =~ mixed or
+              fail("path: #{mixed.inspect}")
+            head, tail = $1, $2
+            if head.index('*')
+              GlobNodeMatcher.new(head, tail)
+            else
+              StringMatcher.new(head, tail)
+            end
+          when Array; Blacklist.new(mixed)
+          else
+            fail("can't build matcher from #{mixed.inspect}")
+          end
         end
       end
-      hash
+      module Matcher; end
+      include Matcher, MatcherFactory
+      class << self
+        include MatcherFactory
+        alias_method :get, :create_matcher
+      end
+    private
+      def initialize lizt
+        @matchers = lizt.map do |glob|
+          create_matcher(glob)
+        end
+      end
+    public
+      def include? str
+        @matchers.detect{ |x| x.include?(str) }
+      end
+      def submatcher str
+        these = []
+        @matchers.each do |m|
+          this = m.submatcher(str)
+          these.push(this) if this
+        end
+        ret =
+        if these.empty?
+          nil
+        else
+          Blacklist.new(these)
+        end
+        ret
+      end
+    private
+      class EmptyMatcherClass
+        include Matcher
+        def initialize; end
+        def submatcher m
+          self
+        end
+        def include? *a
+          false
+        end
+      end
+      EmptyMatcher = EmptyMatcherClass.new
+      class MatcherWithTail
+        include MatcherFactory, Matcher
+        def include? str
+          if @tail
+            false
+          else
+            head_include?(str)
+          end
+        end
+        def tail= str
+          if str.nil?
+            @tail = nil
+          else
+            @tail = create_matcher(str)
+          end
+        end
+        def submatcher(sub)
+          if head_include?(sub)
+            @tail
+          else
+            nil
+          end
+        end
+      end
+      class GlobNodeMatcher < MatcherWithTail
+        # **/ --> (.*?\/)+ ; * --> .*? ; ? --> . ;
+        # "**/*.rb" --> /^(.*?\/)+.*?\.rb$/ -thx heftig
+        def initialize globtoken, tail
+          /(?:\*\*|\/)/ =~ globtoken and fail("not yet")
+          /\*/ =~ globtoken or fail("no")
+          regexp_str = globtoken.split('*').map do |x|
+            Regexp.escape(x)
+          end.join('.*?')
+          @re = Regexp.new("\\A#{regexp_str}\\Z")
+          self.tail = tail
+        end
+        def head_include? str
+          @re =~ str
+        end
+      end
+      class StringMatcher < MatcherWithTail
+        def initialize str, tail=nil
+          @head = str
+          self.tail = tail
+        end
+        def head_include? str
+          @head == str
+        end
+      end
     end
   end
   class Fail < RuntimeError; end
@@ -889,6 +988,9 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
         end
         assert_match(/bad type for dir hash/, e.message)
       end
+      #
+      # http://www.youtube.com/watch?v=Ib0Tll3sGB0
+      #
       def test_dir_as_hash
         h = {
           'not'=>'funny',
@@ -909,7 +1011,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
         hash_to_dir(h, td, file_utils)
         skips = [ 'baby-jug/blood',
                   'not-funny/youre/not/funny']
-        wow = dir_as_hash(td,:skip=>skips)
+        wow = dir_as_hash(td, :skip=>skips)
         no_way = {
           "baby-jug"=>{"what-does"=>"the baby have"},
           "not"=>"funny",
@@ -1025,7 +1127,8 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       def test_unexpected_string_from_patch
         out, err, res = capture3 do
           task.new do
-            pretty_puts_apply("i am another string")
+            pretty_puts_apply("i am another string", [])
+            nil
           end.on(empty_tmpdir("blah")).run
         end
         assert_equal [nil, ""], [res, out]
@@ -1034,7 +1137,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
     end
 
     module TestPersistentDotfile
-      def test_persistent_dotfile_emtpy_tempdir
+      def test_persistent_dotfile_empty_tempdir
         blah1 = empty_tmpdir('blah/blah')
         blah2 = empty_tmpdir('blah/blah')
         assert_equal(blah1, blah2)
