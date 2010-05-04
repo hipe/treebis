@@ -168,7 +168,6 @@ module Treebis
       true
     end
 
-  private
     class Blacklist
       #
       # ruby implementation of fileglob-like patterns for data structures
@@ -1116,6 +1115,17 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       end
     end
 
+    module TestGlobMatcher
+      def test_glob_matcher
+        obj = Object.new
+        obj.extend Treebis::DirAsHash::Blacklist::MatcherFactory
+        err = assert_raises(RuntimeError) do
+          obj.create_matcher(false)
+        end
+        assert_equal "can't build matcher from false", err.message
+      end
+    end
+
     module TestPatch
       def test_patch_fails
         src = empty_tmpdir 'patch/evil'
@@ -1344,6 +1354,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       include TestColorize
       include TestDirAsHash
       include TestFileUtilsProxy
+      include TestGlobMatcher
       include TestPatch
       include TestPersistentDotfile
       include TestRemove
