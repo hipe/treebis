@@ -322,7 +322,7 @@ module Treebis
       end
       ret
     end
-    attr_accessor :prefix
+    attr_reader :prefix
     def prefix= str
       @pretty = true
       @prefix = str
@@ -1180,7 +1180,34 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
         assert_equal "", bb
         assert_equal({}, dir_as_hash(tgt))
       end
+    end
 
+    module TestTaskMisc
+      def setup_notice_task
+        @task = task.new{notice("hello","HI"); 'foo'}
+      end
+      def assert_notice_outcome
+        @out, @err, @res = capture3{ @task.on(nil).run }
+        assert_equal ['', 'foo'], [@out, @res]
+        assert_match(/hello.*HI/, @err)
+      end
+      def test_notice_color
+        setup_notice_task
+        assert_notice_outcome
+        assert @err.index("\e[")
+      end
+      def test_noice_no_color
+        cfg = Treebis::Config
+        prev = cfg.color?
+        cfg.no_color!
+        begin
+          setup_notice_task
+          assert_notice_outcome
+          assert @err.index('hello HI')
+        ensure
+          prev ? cfg.color! : cfg.no_color!
+        end
+      end
     end
 
     module TestSopen
@@ -1262,7 +1289,6 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       end
     end
 
-
     class TestCase < ::Test::Unit::TestCase
       include Treebis::DirAsHash, Treebis::Capture3
       include TestAntecedents
@@ -1272,6 +1298,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       include TestPatch
       include TestPersistentDotfile
       include TestRemove
+      include TestTaskMisc
       include TestTempdirAndTasksAndCopy
       include TestSopen
 
@@ -1292,7 +1319,6 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       end
       def task; Treebis::Task end
     end
-
     ::Test::Unit::UI::Console::TestRunner.run(TestCase)
   end
 end
