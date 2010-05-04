@@ -984,6 +984,15 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       end
     end
 
+    module TestColorize
+      def test_colorize
+        obj = Object.new
+        obj.extend Treebis::Colorize
+        str = obj.send(:colorize, "foo",:background, :blue)
+        assert_equal "\e[44mfoo\e[0m", str
+      end
+    end
+
     module TestDirAsHash
       def test_baby_jug_fail
         hh = {'foo'=>nil}
@@ -1313,6 +1322,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       include Treebis::DirAsHash, Treebis::Capture3
       include TestAntecedents
       include TestColorAndRmAndMoveAndPatch
+      include TestColorize
       include TestDirAsHash
       include TestFileUtilsProxy
       include TestPatch
