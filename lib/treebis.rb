@@ -764,16 +764,20 @@ module Treebis
       end
 
       def persistent_delegate_to(mod)
-        @persistent_delegate ||= begin
-          mm = Module.new
-          str = "#{self}::PersistentDotfileDelegate"
-          const_set('PersistentDotfileDelegate', mm)
-          class << mm; self end.send(:define_method,:inspect){str}
-          buck = self
-          DelegatedMethods.each do |meth|
-            mm.send(:define_method, meth){|*a| buck.send(meth,*a) }
+        if instance_variable_defined?('@persistent_delegate') # rcov
+          @persistent_delegate
+        else
+          @persistent_delegate = begin
+            mm = Module.new
+            str = "#{self}::PersistentDotfileDelegate"
+            const_set('PersistentDotfileDelegate', mm)
+            class << mm; self end.send(:define_method,:inspect){str}
+            buck = self
+            DelegatedMethods.each do |meth|
+              mm.send(:define_method, meth){|*a| buck.send(meth,*a) }
+            end
+            mm
           end
-          mm
         end
         mod.extend(@persistent_delegate)
         mod.send(:include, @persistent_delegate)
@@ -1143,6 +1147,21 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
         assert_equal(blah1, blah2)
         assert_equal({}, dir_as_hash(blah2))
       end
+      def test_delegate_to
+        parent_mod = Module.new
+        Treebis::PersistentDotfile.extend_to(
+          parent_mod, TestCase::DotfilePath
+        )
+        child_mod = Module.new
+        child_mod2 = Module.new
+        parent_mod.persistent_delegate_to(child_mod)
+        parent_mod.persistent_delegate_to(child_mod2)
+        foo = parent_mod.empty_tmpdir('bliz')
+        bar = child_mod.empty_tmpdir('bliz')
+        baz = child_mod2.empty_tmpdir('bliz')
+        assert_equal(foo, bar)
+        assert_equal(foo, baz)
+      end
     end
 
     module TestRemove
@@ -1196,7 +1215,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
         assert_notice_outcome
         assert @err.index("\e[")
       end
-      def test_noice_no_color
+      def test_notice_no_color
         cfg = Treebis::Config
         prev = cfg.color?
         cfg.no_color!
@@ -1290,6 +1309,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
     end
 
     class TestCase < ::Test::Unit::TestCase
+      DotfilePath = './treebis.json'
       include Treebis::DirAsHash, Treebis::Capture3
       include TestAntecedents
       include TestColorAndRmAndMoveAndPatch
@@ -1309,7 +1329,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       file_utils.prefix = futils_prefix
 
       Treebis::PersistentDotfile.include_to( self,
-        './treebis.json', :file_utils => file_utils )
+        DotfilePath, :file_utils => file_utils )
 
       @file_utils = file_utils
       define_method( :file_utils ){ file_utils }
