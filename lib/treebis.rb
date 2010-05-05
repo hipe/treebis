@@ -611,13 +611,14 @@ module Treebis
         target, _ = normalize_on(basename)
         cmd = nil
         if target == './'
-          shell_opts.unshift('-p0')
+          shell_opts.unshift('-p0') unless shell_opts.grep(/\A-p\d+\Z/).any?
           cmd = ['patch '+Shellwords.shelljoin(shell_opts)+' < '+
             Shellwords.shellescape(patchfile)]
         else
           target_arr = (target == './') ? [] : [target]
           cmd = ['patch', '-u', *shell_opts] + target_arr + [patchfile]
         end
+        notice "patching:", cmd.join(' ')
         out, err = Sopen2::sopen2(*cmd)
         if err.length > 0
           cmd_str = cmd.shelljoin
@@ -647,7 +648,7 @@ module Treebis
           opts = these.map do |this|
             [this, * copy_unglob(this, local, path)]
           end
-          opts.each {|a| copy_go *a }
+          opts.each {|a| copy_go(*a) }
         end
       end
       def copy_go full, local, path
