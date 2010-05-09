@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="175" height="175"
+ viewBox="0.00 0.00 175.00 175.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="blah1" class="whatevs" transform="scale(1 1) rotate(0) translate(0 0)">
+<title>this_some_awesome_thing</title>
+<polygon fill="white" stroke="white" points="5,140 5,0 140,0 140,140 5,140"/>
+<g id="node1" class="node">
+<polygon fill="#ccee33" points="19,0 175,0 175,132 169,122 162,132 157,122 148,130 145,119 136,127 133,116 124,124 121,113 112,120 109,109 99,116 98,104 87,109 87,98 76,104 76,92 65,97 65,86 54,91 55,80 43,84 45,73 33,75 38,64 26,64 32,54 21,53 28,44 17,42 25,34 14,32 23,25 12,21 22,16 12,12 21,7 13,3 15,0"/>
+
+<g id="blah2" class="whatevs" transform="scale(1) rotate(20) translate(12, -30)">
+<text text-anchor="middle" x="108" y="32" font-family="Super Sans; sans-serif" font-size="22" fill="#332200">go green!</text>
+<text text-anchor="middle" x="108" y="59" font-family="serif" font-size="22" fill="#332200">go treebis!</text>
+</g>
+
+</g>
+</g>
+</svg>

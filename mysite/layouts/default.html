@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>A Brand New nanDoc Site - <%= @item.nandoc_title %></title>
+    <link rel="stylesheet" type="text/css" href="/css/nanoc-dist-altered.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="/css/trollop-subset.css" media="screen">
+    <script type="text/javascript" src="/vendor/jquery-1.3.js"></script>
+    <script type="text/javascript" src="/vendor/jquery.easing.1.3.js"></script>
+    <script type="text/javascript" src="/js/menu-bouncy.js"></script>
+    <meta name="generator" content="nanoc 3.1.2">
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2 class='nanoc-sidebar-h2 first'>Documentation</h2>
+      <div class='nandoc-site-map'>
+        <%=
+        nandoc_sitemap(binding) do |it|
+          it.glyphs, it.root_identifier, it.tabs = :right, '/', 4
+          it.children &Nanoc3::Item.sorted_visible_children
+          it.render_parent do |m|<<-H
+            <ul class='nested'>
+              #{m.render_children(:tabs=>7)}
+            </ul>
+          H
+          end
+          it.render_child do |map|
+            <<-H
+            <li class='lvl#{map.level}'>
+              #{link_to_unless_current(map.item.nandoc_title, map.item.path)}
+              #{map.glyphs_right}
+              #{map.render_parent}
+            </li>
+          H
+          end
+        end
+      %>
+      </div>
+      <h2 class='nanoc-sidebar-h2'>Too Many Faces</h2>
+      <dl class='faces'>
+        <dt>read:</dt><dd><a href="http://nandoc.hipeland.org/">hipeland</a></dd>
+        <dt>write:</dt><dd><a href="http://rubygems.org/gems/nandoc">rubygems</a></dd>
+        <dt>write write:</dt><dd><a href="http://github.com/hipe/nandoc">github</a></dd>
+        <dt>why?:</dt><dd><a href="http://nandoc.rubyforge.org/">rubyforge</a></dd>
+      </dl>
+      <div class='links'>
+        <h2 class='nanoc-sidebar-h2'>Live Hot Chat Now</h2>
+        <ul>
+          <li><a href="irc://chat.freenode.net/#ruby-lang">hipe on irc</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="main">
+      <div class="nandoc-topnav">
+        <%=
+          These = {
+            '❦' => '&#10086;',
+            '❧' => '&#10087;',
+            '♠' => '&spades;'
+          } unless self.class.const_defined?('These') # hm
+          nandoc_menu_bouncy(binding) do |it|
+            it.separator = These['❧']
+            it.tabs = 4
+          end
+        %>
+      </div>
+      <div class='clear'></div>
+      <%= yield %>
+      <div class='clear'>&nbsp;</div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+# * The order of rules is important: for each item, only the first matching
+#   rule is applied.
+#
+# * Item identifiers start and end with a slash (e.g. "/about/" for the file
+#   "content/about.html"). To select all children, grandchildren, ... of an
+#   item, use the pattern "/about/*/"; "/about/*" will also select the parent,
+#   because "*" matches zero or more characters.
+
+PassThru = [
+  {:dir=>'css', :ext=>'css'},
+  {:dir=>'js',  :ext=>'js'},
+  {:dir=>'vendor', :ext=>'js'}, # sucks
+  {:dir=>'svg', :ext=>'svg'}
+]
+PassThru.each do |x|
+  compile("/#{x[:dir]}/*/"){ } # don't filter or layout
+end
+
+PassThru.each do |x|
+  dir, ext = x[:dir], x[:ext]
+  route "/#{dir}/*" do
+    if item.children.empty?
+      # only operate on leaf nodes
+      basename = item.identifier =~ /^(.+)\/$/ && $1 or
+        fail("parse fail: #{item.identifier}")
+      "#{basename}.#{ext}"
+    end
+  end
+end
+
+# removed some crazy logic in 4189c
+
+compile '*' do
+  filter :nandoc
+  filter :erb
+  filter :kramdown
+  layout 'default'
+end
+
+route '*' do
+  item.identifier + 'index.html'
+end
+
+layout '*', :erb

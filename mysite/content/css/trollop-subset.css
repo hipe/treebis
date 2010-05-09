@@ -1,0 +1,116 @@
+/* copy-pasted, apapted from William Morgan's Trollop */
+/*
+body {
+margin-left:auto;
+margin-right:auto;
+width:800px;
+}
+*/
+code {
+font-size:14px;
+}
+.ruby {
+background:none repeat scroll 0 0 #111122;
+color:#228822;
+padding:10px;
+/*width:800px;*/
+}
+.ruby .normal {
+color:#FFFFFF;
+}
+.ruby .comment {
+color:#9999FF;
+}
+.ruby .keyword {
+color:#AA4444;
+font-weight:bold;
+}
+.ruby .method {
+color:#4444FF;
+}
+.ruby .class {
+color:#00CC44;
+}
+.ruby .module {
+color:#005500;
+}
+.ruby .punct {
+color:#FFFF00;
+font-weight:bold;
+}
+.ruby .symbol {
+color:#FFFF00;
+}
+.ruby .string {
+color:#44FF44;
+}
+.ruby .char {
+color:#FF0077;
+}
+.ruby .ident {
+color:#FFFFFF;
+}
+.ruby .constant {
+color:#00CC44;
+}
+.ruby .regex {
+background:none repeat scroll 0 0 #444444;
+color:#BB6666;
+}
+.ruby .number {
+color:#FF9999;
+}
+.ruby .attribute {
+color:#FFCC44;
+}
+.ruby .global {
+color:#77FFBB;
+}
+.ruby .expr {
+color:#882277;
+}
+.ruby .escape {
+color:#227777;
+}
+.terminal {
+background:none repeat scroll 0 0 #111122;
+/*color:#228822; this is green*/
+color:#AFE793; /* this is pale green*/
+margin:0 0 0.5em 0;
+padding:10px;
+/*width:800px;*/
+}
+.terminal .prompt { /* same as 'green' below */
+color:#00C23C;
+}
+.terminal .normal {
+color:#AFE793
+}
+.terminal .bright {
+font-weight: bold;
+}
+.terminal .black {
+color:#000000;
+}
+.terminal .green {
+/* this is iTerm per digital color meter, not per web colors */
+color:#00C23C;
+}
+.terminal .red {
+color:#FF0000;
+}
+.terminal .yellow {
+color:#FFFF00;
+}
+.terminal .blue {
+color:#0000FF;
+}
+.terminal .magenta {
+color:#FF00FF;
+}
+.terminal .cyan {
+color:#00FFFF;
+}
+.terminal .white {
+color:#FFFFFF;
+}

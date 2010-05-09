@@ -1,0 +1,237 @@
+* {
+  margin: 0;
+  padding: 0;
+  /*
+    this was the nandoc-generated font-family:
+    font-family: Georgia, Palatino, Times, 'Times New Roman', sans-serif;
+    this was breaking the default browser's font for <code></code>,
+    decided just to go with the browser default font
+  */
+}
+
+body {
+  background: #fff;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:link,
+a:visited {
+background: #ccee33;
+color: #332200;
+padding: 0 0.4em;
+-moz-border-radius-bottomleft: 3px;
+-moz-border-radius-bottomright: 3px;
+-moz-border-radius-topleft: 3px;
+-moz-border-radius-topright: 3px;
+-webkit-border-bottom-left-radius: 3px;
+-webkit-border-bottom-right-radius: 3px;
+-webkit-border-top-left-radius: 3px;
+-webkit-border-top-right-radius: 3px;
+}
+
+a:hover {
+  color: #f90;
+}
+
+.main{
+  float:left;
+  left:59px;
+  position:relative;
+  top:40px;
+  width:500px;
+}
+
+.main h1 {
+  font-size: 40px;
+  font-weight: normal;
+  line-height: 40px;
+  letter-spacing: -1px;
+}
+
+.maincontent p {
+  margin: 20px 0;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+/*
+.main ul {
+  margin: 20px;
+}*/
+/*
+.main li {
+  list-style-type: square;
+  font-size: 15px;
+  line-height: 20px;
+}
+*/
+
+.sidebar {
+  position: relative;
+  float: left;
+  top: 40px;
+  left: 20px;
+  width: 200px;
+  padding: 20px 20px 0 0;
+  border-right: 1px solid #ccc;
+  text-align: right;
+}
+
+.sidebar h2 {
+  /* moved to a class to make it more reusable */
+  margin-top:2em;
+}
+.sidebar h2.first {
+  margin-top: 0;
+}
+
+.sidebar ul {
+  list-style-type: none;
+  /*margin: 20px 0;*/
+}
+
+.sidebar li {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/*
+############################################################################
+nandoc added.
+alphabetical order disregarding element type, any leading nandoc- prefix
+or whether it is an identifier or a class.
+) */
+.bouncy-lvl1-sep {
+float:left;
+padding: 0 0.2em;
+position: relative;
+z-index: 1;
+}
+.bouncy-lvl2-menu {
+background: #ccc;
+padding: 0em 0.2em 0.2em 0.5em;
+overflow: hidden;
+position: absolute;
+right: 0px;
+text-align: right;
+top: 1em;
+z-index: -1;
+-moz-border-radius-bottomleft: 8px;
+-moz-border-radius-bottomright: 8px;
+-moz-border-radius-topleft: 8px;
+-moz-border-radius-topright: 0px;
+-webkit-border-bottom-left-radius: 8px;
+-webkit-border-bottom-right-radius: 8px;
+-webkit-border-top-left-radius: 8px;
+-webkit-border-top-right-radius: 0px;
+}
+.bouncy-lvl2-item {
+white-space: nowrap;
+}
+.bouncy-lvl2-content a:link {
+color: #333;
+}
+.bouncy-lvl2-content a:visited {
+color: #000;
+}
+.bouncy-lvl2-content a:hover {
+color: #ccee33;
+}
+.bouncy-lvl2-sep {
+
+}
+.clear {
+clear: both;
+}
+.debug-ging-outline {
+border: 1px solid orange;
+}
+div.footnotes{
+font-size:0.9em;
+}
+dl.faces{
+font-size: 14px;
+line-height: 1.3em;
+background: #ccee33;
+-moz-border-radius-bottomleft: 4px;
+-moz-border-radius-bottomright: 4px;
+-moz-border-radius-topleft: 4px;
+-moz-border-radius-topright: 4px;
+-webkit-border-bottom-left-radius: 4px;
+-webkit-border-bottom-right-radius: 4px;
+-webkit-border-top-left-radius: 4px;
+-webkit-border-top-right-radius: 4px;
+padding:0.33em 0.2em;
+}
+dl.faces dt{
+clear: left;
+float: left;
+padding: 0 0.3em 0 0;
+text-align: right;
+width:8em;
+}
+dl.faces dd{
+text-align: left;
+}
+dl.faces dd a{
+background:#332211;
+color:#ccee33;
+}
+.nandoc-menu-lvl-1{
+float: left;
+position: relative;
+z-index: 2;
+}
+.nandoc-menu-sep {
+float: left;
+margin: 0 0.2em;
+z-index; 1;
+}
+.nanoc-sidebar-h2 {
+color: #333;
+font-size: 13px;
+font-weight: bold;
+letter-spacing: 1px;
+line-height: 20px;
+text-transform: uppercase;
+}
+.main h2, .main h3, .main h4, .main h5, .main h6{
+margin: 0.8em 0 0.4em 0
+}
+.main p{
+margin: 0 0 0.4em 0;
+}
+.main ul{
+margin: 0 0 0 1.0em;
+}
+p.answer:first-letter {
+font-size: 1.5em;
+font-weight: bold;
+}
+span.answer {
+font-size: 1.5em;
+font-weight: bold;
+}
+.sidebar ul.nested {
+margin: 0 0;
+}
+.sidebar ul.nested li {
+line-height: 1em;
+}
+#nandoc-site-map {
+margin: 10px 12px 10px 0px
+}
+.nandoc-topnav {
+padding: 18px 0 18px 0;
+}
+.nandoc-topnav-2 {
+padding: 18px 0 18px 0;
+border: 1px solid black;
+}
+.sidebar .links{
+float: right;
+text-align: center;
+}
