@@ -1,3 +1,4 @@
 coverage
 mysite/output
+mysite/tmp
 *.persistent.json
