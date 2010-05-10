@@ -1,4 +1,7 @@
 coverage
+*.gemspec
 mysite/output
 mysite/tmp
 *.persistent.json
+pkg
+.yardoc
