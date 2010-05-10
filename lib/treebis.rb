@@ -151,7 +151,7 @@ module Treebis
       Hash[ list2 ]
     end
 
-    def hash_to_dir hash, path, file_utils
+    def hash_to_dir hash, path, file_utils=FileUtils
       fail("must not exist: #{path}") if File.exist? path
       file_utils.mkdir_p(path,:verbose=>true)
       hash.each do |k,v|
@@ -1338,6 +1338,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       end
     end
 
+
     module TestTaskMisc
       def setup_notice_task
         @task = task.new{notice("hello","HI"); 'foo'}
@@ -1446,7 +1447,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
     end
 
     class TestCase < ::Test::Unit::TestCase
-      DotfilePath = './treebis.json'
+      DotfilePath = './treebis.persistent.json'
       include Treebis::DirAsHash, Treebis::Capture3
       include TestAntecedents
       include TestColorAndRmAndMoveAndPatch
