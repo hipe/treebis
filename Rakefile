@@ -43,5 +43,7 @@ Jeweler::Tasks.new do |s|
   s.name = 'treebis'
   s.rubyforge_project = 'treebis'
   s.summary = NanDoc::ParseReadme.summary('README')
+  
+  s.add_dependency 'json', '~> 1.2.3'
 end
 

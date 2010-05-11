@@ -65,7 +65,7 @@ from the command line:
 
 <em>
 <a class='no-style' href='#' title='At The Time of This Writing'>ATTOTW</a>
-treebis is a single file with no dependencies.  You can
+treebis is a single file without dependencies except 'json'.  You can
 <a href='http://github.com/hipe/treebis/blob/master/lib/treebis.rb'>just download it</a> and throw it in your code directory
 <sup id="fnref:trollop"><a href="#fn:trollop" rel="footnote">1</a></sup>
 </em>
