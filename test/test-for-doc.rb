@@ -1,7 +1,17 @@
 require 'minitest/spec'
-require 'nandoc' # requires treebis so .. yeah
+require 'treebis'
+require 'nandoc'
+require 'nandoc/spec-doc'
 
 MiniTest::Unit.autorun
+
+class String
+  def unindent
+    this = (/\A([ \t]*)/ =~ self && $1)
+    this = /^#{Regexp.escape(this)}/m
+    gsub(this, '')
+  end
+end
 
 describe 'TestForDoc' do
   NanDoc::SpecDoc.include_to(self)
@@ -11,9 +21,9 @@ describe 'TestForDoc' do
     @prompt ||= NanDoc::MockPrompt.new(self)
   end
 
-  it 'make files with dir as hash' do
-    mydir = empty_tmpdir('make-some-files')
-    FileUtils.cd(mydir) do
+  it 'using dir as hash' do
+    @mydir = empty_tmpdir('make-some-files')
+    FileUtils.cd(@mydir) do
       nandoc.record_ruby
       require 'treebis'
 
@@ -22,8 +32,9 @@ describe 'TestForDoc' do
 
         def make_files in_folder
           hash = {
-            'some-file.txt' => "happy mother's day",
+            'some-file.txt' => "happy mother's day, <%= name %>",
             'lists' => {
+              'blah.txt' => 'foo',
               'favorite-foods.txt' => <<-HERE.gsub(/^ */,'')
                 two bite brownies
                 peanut cluster things
@@ -35,10 +46,55 @@ describe 'TestForDoc' do
       end
 
       FilemakerPro.new.make_files('./foo')
-      nandoc.inspect Dir['./foo/**/*'], <<-HERE.strip
-    ["./foo/lists", "./foo/lists/favorite-foods.txt", "./foo/some-file.txt"]
-      HERE
+      nandoc.out(<<-HERE.unindent
+         ["./foo/lists",
+          "./foo/lists/blah.txt",
+          "./foo/lists/favorite-foods.txt",
+          "./foo/some-file.txt"]
+        HERE
+      ) do
+        PP.pp Dir['./foo/**/*']
+      end
       nandoc.record_ruby_stop
     end
   end
+
+  it 'first task' do
+    run_this_test_again 'using dir as hash'
+    FileUtils.cd(@mydir) do
+      nandoc.record_ruby
+      task = Treebis::Task.new do
+        from './foo'
+        mkdir_p 'lists'
+        copy 'lists/*foods.txt'
+        erb 'some-file.txt'
+      end
+
+      FileUtils.mkdir('./output')
+      erb_values = {:name => 'dear mom'}
+      task.erb_values(erb_values).on('./output').run
+
+      nandoc.out(<<-'HERE'.unindent
+{"lists"=>{"favorite-foods.txt"=>"two bite brownies\npeanut cluster things\n"},
+ "some-file.txt"=>"happy mother's day, dear mom"}
+      HERE
+      ) do
+        PP.pp(Treebis::DirAsHash.dir_as_hash('./output'))
+      end
+      nandoc.record_ruby_stop
+    end
+  end
+
+  # @todo etc
+  def run_this_test_again name
+    filter = /\Atest_\d{4}_#{name.gsub(/[^_a-z0-9]/i,'_')}\Z/
+    mm = self.class.test_methods.grep(filter)
+    case mm.size
+    when 0; fail("failed to find methods named #{name.inspect} with #{re}")
+    when 1;
+    else fail("found too many methods for #{name}: #{mm.join(', ')}")
+    end
+    send(mm.first)
+  end
+
 end
