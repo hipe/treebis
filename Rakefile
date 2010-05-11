@@ -10,6 +10,7 @@ end
 desc "#{me}run them"
 task :test do
   sh "ruby -w lib/treebis.rb"
+  require File.dirname(__FILE__)+'/test/test-for-doc.rb'
 end
 
 desc "#{me}see if the tests for docs run"
