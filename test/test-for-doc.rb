@@ -2,6 +2,7 @@ require 'minitest/spec'
 require 'treebis'
 require 'nandoc'
 require 'nandoc/spec-doc'
+require 'pp'
 
 MiniTest::Unit.autorun
 
