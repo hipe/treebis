@@ -21,7 +21,7 @@ a:link,
 a:visited {
 background: #ccee33;
 color: #332200;
-padding: 0 0.4em;
+padding: 0.06em 0.4em 0 0.4em;
 -moz-border-radius-bottomleft: 3px;
 -moz-border-radius-bottomright: 3px;
 -moz-border-radius-topleft: 3px;
