@@ -37,6 +37,11 @@ a:hover {
   background: #332200;
 }
 
+a.no-style {
+  background: none;
+  padding: 0;
+}
+
 .main{
   float:left;
   left:59px;

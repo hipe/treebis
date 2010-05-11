@@ -5,17 +5,17 @@
   pluginspage="http://www.adobe.com/svg/viewer/install/" />
 
 
-## treebis
+# treebis
 
-### summary
+## summary
 minimal single-file rake-like task DSL for wrapping common filesystem tasks like copying files.
 
 
-### description
+## description
 Treebis is a minimal, general scripting/task utility written in ruby that wraps common actions for moving, copying and altering filetrees.  It is geared towards things like generators.  It is comparable to a shell script that does a lot of mkdir, mv, cp commmands etc.
 
 
-### what it is:
+## what it is:
   - task wrapper for external commands that make filetrees, e.g.
     - maybe the generators in things like rails, ramaze, nandoc
   - proxy around FileUtils that allows customizing its output
@@ -23,14 +23,14 @@ Treebis is a minimal, general scripting/task utility written in ruby that wraps 
   - removes filetrees from filetrees
   - applies diffs to filetrees
   - different ways to represent trees and diffs - heredocs, diffs, filesystem.
-  - under 500 lines of code (?) (~300 SLOC ATTOTW)
-  - near 100% test coverage (?)
+  - under 1000 SLOC
+  - rcov test coverage usually hovers between 95-100%
 
-### what it is not:
+## what it is not:
   - a vcs or vcs wrapper (version control system)
   - atomic
 
-### Frequently Asked Questions
+## frequently asked questions
 
 ### Q: why use it?
 <span class='answer'>A</span>: Because you want a consistent way to wrap these common tasks that doesn't explicitly rely on shelling out to the underlying system, or other hodgepodges.  (also see 'why did you make this?' below)
@@ -44,21 +44,55 @@ Treebis is a minimal, general scripting/task utility written in ruby that wraps 
 ### Q: why did you make this?
 <span class='answer'>A</span>: by the third or fourth time i found myself re-writing this same kind of thing for different projects, or bleeding from its absence, i decided to abstract it.  It's more readable than a bunch of FileUtils statements,  it paves the way for possible future enhancements like atomicitiy and units of work; and wouldn't it be nice if every generator of every project used the same library?
 
-### requirements
+## requirements
   - ruby 1.8.7
-  - GNU patch 2.5.8 if the diff-patching functionality is to be used.
-      Most versions of patch will likely work; treebis uses unified diffs.
+  - Treebis supports the application of unified diffs to single files
+      and whole directories.  If this functionality is desired,
+      Treebis was developed with GNU `patch` 2.5.8.  Most versions of patch
+      will likely work.
 
-### installation
+## installation
+
+### install the gem:
+
 from the command line:
 ~~~
 ~ > gem install treebis
 ~~~
 
 
-### usage
+### or grab the file:
+
+<em>
+<a class='no-style' href='#' title='At The Time of This Writing'>ATTOTW</a>
+treebis is a single file with no dependencies.  You can
+<a href='http://github.com/hipe/treebis/blob/master/lib/treebis.rb'>just download it</a> and throw it in your code directory
+<sup id="fnref:trollop"><a href="#fn:trollop" rel="footnote">1</a></sup>
+</em>
+
+
+## usage
 May I refer you to these [usage examples](usage-examples)?
 
-### future promises made today:
-  - dry run
+## future promises made today:
+  - dry run ?
   - two-pass units of work !!??
+
+
+<br />
+<br />
+<hr />
+
+### Footnotes
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:trollop">
+      <p>Appologies to <a href='http://trollop.rubyforge.org/'>trollop</a>
+        from which is stole this langauge and idea of keeping things in a
+        single file when practical.
+        <a href="#fnref:trollop" rev="footnote">&#8617;</a>
+      </p>
+    </li>
+  </ol>
+</div>
