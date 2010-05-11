@@ -150,6 +150,7 @@ module Treebis
       }
       Hash[ list2 ]
     end
+    module_function :dir_as_hash
 
     def hash_to_dir hash, path, file_utils=FileUtils
       fail("must not exist: #{path}") if File.exist? path
@@ -167,6 +168,7 @@ module Treebis
       end
       true
     end
+    module_function :hash_to_dir
 
     class Blacklist
       #
@@ -567,6 +569,26 @@ module Treebis
       @name = name
       @ui_stack = []
     end
+    attr_reader :erb_values
+    def erb_values hash
+      @erb_values = hash
+      self
+    end
+    # @api private
+    def erb_values_binding
+      @erb_values_binding ||= begin
+        obj = Object.new
+        bnd = obj.send(:binding)
+        sing = class << obj; self end
+        sing2 = class << bnd; self end
+        hash = @erb_values or fail("need @erb_values")
+        ks = hash.keys
+        sing2.send(:define_method, :keys){ ks }
+        sing2.send(:define_method, :inspect){'#<TreebisErbBinding>'}
+        ks.each{ |k| sing.send(:define_method, k){ hash[k] } }
+        bnd
+      end
+    end
     def file_utils
       @file_utils ||= Config.new_default_file_utils_proxy
     end
@@ -629,6 +651,16 @@ module Treebis
         else
           pretty_puts_apply out, cmd
         end
+      end
+      def erb path
+        require 'erb'
+        in_full, in_local = normalize_from path
+        out_full, out_local = normalize_on path
+        tmpl = ERB.new(File.read(in_full))
+        tmpl.filename = in_full # just used when errors
+        bnd = @task.erb_values_binding
+        out = tmpl.result(bnd)
+        write out_local, out
       end
       def copy path
         if path.index('*')
