@@ -32,6 +32,8 @@ Treebis tasks usually work with files _from_ a location and apply them _on_ anot
 
 In the last line we see that the net result of this is that the task wrote to the target directory two of the three files from the source directory, and in one of the files it interpolated the erb template with values that we passed to it.
 
+I really wanted to show you the pretty colors in the output but I must get going!
+
 <br />
 <hr />
 ### _Footnotes_ ###
