@@ -1,6 +1,5 @@
 require 'minitest/spec'
 require 'treebis'
-require 'nandoc'
 require 'nandoc/spec-doc'
 require 'pp'
 
@@ -10,7 +9,8 @@ class String
   def unindent
     this = (/\A([ \t]*)/ =~ self && $1)
     this = /^#{Regexp.escape(this)}/m
-    gsub(this, '')
+    ret = gsub(this, '')
+    ret
   end
 end
 
@@ -85,6 +85,42 @@ describe 'TestForDoc' do
       nandoc.record_ruby_stop
     end
   end
+  
+  it 'persistent dotfile' do
+    mydir = empty_tmpdir('persitent-dotfile')
+    FileUtils.cd(mydir) do
+      nandoc.record_ruby
+      require 'treebis'
+      module SomeMod
+        extend self # cute way to get a singleton
+        Treebis::PersistentDotfile.include_to(self, 'somefile.json')
+      end
+      
+      module OtherMod
+        extend self        
+        Treebis::PersistentDotfile.include_to(self, 'somefile.json')
+      end
+      
+      nandoc.inspect SomeMod.persistent_get('foo'), 'nil'
+      
+      SomeMod.persistent_set('foo','bar')
+      nandoc.inspect SomeMod.persistent_get('foo'), '"bar"'
+      
+      nandoc.inspect OtherMod.persistent_get('foo'), '"bar"'
+      nandoc.record_ruby_stop
+      nandoc.story 'see contents'
+      nandoc.record_ruby
+      nandoc.out(<<-HERE.unindent
+        {
+          "foo": "bar"
+        }
+      HERE
+      ) do
+        puts File.read('somefile.json')
+      end
+      nandoc.record_ruby_stop
+    end    
+  end
 
   # @todo etc
   def run_this_test_again name
@@ -97,5 +133,4 @@ describe 'TestForDoc' do
     end
     send(mm.first)
   end
-
 end

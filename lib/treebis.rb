@@ -56,7 +56,7 @@ module Treebis
   end
   # like Open3 but stay in the ruby runtime
   module Capture3
-    # @return [result, out_string, err_string]
+    # @return [out_string, err_string, result]
     def capture3 &block
       prev_out, prev_err, result = $stdout, $stderr, nil
       out_str, err_str = nil, nil
@@ -75,7 +75,7 @@ module Treebis
     end
     class StdoutStringIoHack < File
       private(*ancestors[1..2].map(&:public_instance_methods).flatten)
-      these = %w(puts write)
+      these = %w(puts write <<)
       public(*these)
       def initialize
         super('/dev/null','w+')
