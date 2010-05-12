@@ -12,7 +12,7 @@ minimal single-file rake-like task DSL for wrapping common filesystem tasks like
 
 
 ## description
-Treebis is a minimal, general scripting/task utility written in ruby that wraps common actions for moving, copying and altering filetrees.  It is geared towards things like generators.  It is comparable to a shell script that does a lot of mkdir, mv, cp commmands etc.
+Treebis is a minimal, general scripting/task utility written in ruby that wraps common actions for moving, copying and altering filetrees.  It is geared towards things like generators.  It is comparable to a shell script that does a lot of mkdir, mv, cp commands etc.
 
 
 ## what it is:
@@ -42,7 +42,7 @@ Treebis is a minimal, general scripting/task utility written in ruby that wraps 
 <span class='answer'>A</span>: because it rhymes with "Jeebus."
 
 ### Q: why did you make this?
-<span class='answer'>A</span>: by the third or fourth time i found myself re-writing this same kind of thing for different projects, or bleeding from its absence, i decided to abstract it.  It's more readable than a bunch of FileUtils statements,  it paves the way for possible future enhancements like atomicitiy and units of work; and wouldn't it be nice if every generator of every project used the same library?
+<span class='answer'>A</span>: by the third or fourth time i found myself re-writing this same kind of thing for different projects, or bleeding from its absence, i decided to abstract it.  It's more readable than a bunch of FileUtils statements,  it paves the way for possible future enhancements like atomicicity (atomic-ness?) and units of work; and wouldn't it be nice if every generator of every project used the same library?
 
 ## requirements
   - ruby 1.8.7
