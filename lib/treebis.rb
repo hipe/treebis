@@ -569,7 +569,6 @@ module Treebis
       @name = name
       @ui_stack = []
     end
-    attr_reader :erb_values
     def erb_values hash
       @erb_values = hash
       self
