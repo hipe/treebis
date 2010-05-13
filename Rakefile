@@ -34,7 +34,6 @@ require 'nandoc'
 require 'nandoc/parse-readme'
 
 Jeweler::Tasks.new do |s|
-  s.add_dependency 'json'
   s.authors = ['Chip Malice']
   s.description = NanDoc::ParseReadme.description('README')
   s.files =  FileList['[A-Z]*', '{bin,doc,generators,lib,test}/**/*']
