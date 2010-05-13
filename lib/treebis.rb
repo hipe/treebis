@@ -833,8 +833,8 @@ end
 module Treebis
   module PersistentDotfile
     class << self
-      def extend_to(tgt, dotfile_path, opts={})
-        opts = {:file_utils=>FileUtils, :dotfile_path=>dotfile_path}.
+      def extend_to(tgt, dotfile_paths, opts={})
+        opts = {:file_utils=>FileUtils, :dotfile_paths=>dotfile_paths}.
           merge(opts)
         tgt.extend ClassMethods
         tgt.persistent_dotfile_init opts
@@ -846,13 +846,28 @@ module Treebis
     end
     DelegatedMethods = %w(tmpdir empty_tmpdir persistent_set persistent_get)
     module ClassMethods
-      attr_accessor :dotfile_path, :file_utils
+      attr_accessor :dotfile_paths, :file_utils
 
       def persistent_dotfile_init opts
-        @dotfile_path ||= opts[:dotfile_path]
+        dfp =
+          case opts[:dotfile_paths]
+          when Array; opts[:dotfile_paths]
+          when String; [opts[:dotfile_paths]]
+          else fail("dotfile_path(s) must be string or array, not "<<
+            " #{opts[:dofile_paths].inspect}")
+        end
+        @dotfile_paths = dfp
         @file_utils   ||= opts[:file_utils]
         @persistent_struct ||= nil
         @tmpdir       ||= nil
+      end
+
+      def dotfile_path_first_that_exists
+        @dotfile_paths.detect{ |p| File.exist?(p) }
+      end
+
+      def dotfile_path_to_write_to
+        dotfile_path_first_that_exists || @dotfile_paths.first
       end
 
       #
@@ -916,8 +931,8 @@ module Treebis
           @persistent_struct
         elsif @persistent_struct == false
           nil
-        elsif File.exists? dotfile_path
-          @persistent_struct = JSON.parse(File.read(dotfile_path))
+        elsif path = dotfile_path_first_that_exists
+          @persistent_struct = JSON.parse(File.read(path))
         else
           @persistent_struct = false
         end
@@ -926,7 +941,7 @@ module Treebis
       def persistent_set path, value
         struct = persistent_struct || (@persistent_struct = {})
         struct[path] = value
-        File.open(dotfile_path, 'w+') do |fh|
+        File.open(dotfile_path_to_write_to, 'w+') do |fh|
           fh.write JSON.pretty_generate(struct)
         end
         nil
@@ -1429,7 +1444,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       def test_copy_one_file_nothing_exist
         out_dir = tmpdir+'/out-dir'
         src_file = tmpdir+'/baz.txt'
-        per_file = self.class.dotfile_path
+        per_file = self.class.dotfile_path_to_write_to
         file_utils.remove_entry_secure(out_dir) if File.exist?(out_dir)
         file_utils.remove_entry_secure(src_file) if File.exist?(src_file)
         file_utils.remove_entry_secure(per_file) if File.exist?(per_file)
@@ -1438,7 +1453,7 @@ if [__FILE__, '/usr/bin/rcov'].include?($PROGRAM_NAME) # ick
       def test_copy_one_file_almost_nothing_exist
         out_dir = tmpdir+'/out-dir'
         src_file = tmpdir+'/baz.txt'
-        per_file = self.class.dotfile_path
+        per_file = self.class.dotfile_path_to_write_to
         file_utils.remove_entry_secure(out_dir) if File.exist?(out_dir)
         file_utils.remove_entry_secure(src_file) if File.exist?(src_file)
         if File.exist?(per_file)
