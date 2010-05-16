@@ -15,6 +15,8 @@ color:#228822;
 margin: 1em 0;
 padding:10px;
 width:700px;
+--moz-border-radius: 7px;
+--webkit-border-radius: 7px;
 }
 .ruby .normal {
 color:#FFFFFF;
@@ -79,6 +81,8 @@ background:none repeat scroll 0 0 #111122;
 color:#AFE793; /* this is pale green*/
 margin:0 0 0.5em 0;
 padding:10px;
+--moz-border-radius: 7px;
+--webkit-border-radius: 7px;
 /*width:800px;*/
 }
 .terminal .prompt { /* same as 'green' below */
