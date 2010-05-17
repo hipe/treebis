@@ -1,7 +1,6 @@
 require 'minitest/spec'
 require 'treebis'
 require 'nandoc/spec-doc'
-require 'nandoc/testlib/minitest-extlib'
 require 'pp'
 
 MiniTest::Unit.autorun
@@ -16,7 +15,7 @@ class String
 end
 
 describe 'TestForDoc' do
-  NanDoc::SpecDoc.include_to(self)
+  include NanDoc::SpecDoc
   Treebis::PersistentDotfile.include_to(self, 'treebis.persistent.json')
 
   def prompt
