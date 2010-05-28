@@ -661,12 +661,12 @@ module Treebis
         out = tmpl.result(bnd)
         write out_local, out
       end
-      def copy path
+      def copy path, tgt=nil
         if path.index('*')
           copy_glob(path)
         else
           full, local = normalize_from path
-          copy_go full, local, path
+          copy_go full, local, path, tgt
         end
       end
       def copy_glob path
@@ -682,8 +682,8 @@ module Treebis
           opts.each {|a| copy_go(*a) }
         end
       end
-      def copy_go full, local, path
-        tgt = File.join(@on_path, local)
+      def copy_go full, local, path, tgt=nil
+        tgt ||= File.join(@on_path, local)
         skip = false
         if File.exist?(tgt) && File.read(full) == File.read(tgt)
           report_action :identical, path
