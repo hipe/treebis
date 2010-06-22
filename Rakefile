@@ -30,19 +30,26 @@ end
 
 
 require 'jeweler'
-require 'nandoc'
-require 'nandoc/parse-readme'
+# require 'nandoc'
+# require 'nandoc/parse-readme'
 
 Jeweler::Tasks.new do |s|
   s.authors = ['Chip Malice']
-  s.description = NanDoc::ParseReadme.description('README')
+  # s.description = NanDoc::ParseReadme.description('README')
+  s.description = <<-HERE.gsub(/^ +/,'')
+    Treebis is a minimal, general scripting/task utility written in ruby 
+    that wraps common actions for moving, copying and altering filetrees.
+    It is geared towards things like generators.  It is comparable to a shell script
+    that does a lot of mkdir, mv, cp commands etc.  
+  HERE
   s.files =  FileList['[A-Z]*', '{bin,doc,generators,lib,test}/**/*']
   s.email = 'chip.malice@gmail.com'
   s.homepage = 'http://treebis.hipeland.org'
   s.name = 'treebis'
   s.rubyforge_project = 'treebis'
-  s.summary = NanDoc::ParseReadme.summary('README')
-  
+  # s.summary = NanDoc::ParseReadme.summary('README')
+  s.summary = "minimal single-file rake-like task DSL for wrapping "<<
+    "common filesystem tasks like copying files"
   s.add_dependency 'json', '~> 1.2.3'
 end
 
